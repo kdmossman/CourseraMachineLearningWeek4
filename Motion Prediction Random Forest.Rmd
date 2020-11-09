@@ -1,0 +1,165 @@
+---
+title: "Mossman Week 4 Machine Learning"
+author: "Kaspar Mossman"
+date: "11/8/2020"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+This question we will try to answer in this project is whether one can use a certain range of physical activity measures to predict whether a subject is properly executing a dumbbell exercise.
+
+Data comes from the Weight Lifting Exercises dataset from the Human Activity Recognition project viewable here: http://web.archive.org/web/20161224072740/http:/groupware.les.inf.puc-rio.br/har
+
+We will train a random forest model on the training dataset and then use that model on the test dataset to predict performance.
+
+## Load Libraries
+```{r}
+library(parallel)
+library(doParallel)
+library(caret)
+library(dplyr)
+```
+
+## Read Data
+```{r}
+training = read.csv("~/Desktop/Coursera/8. Machine Learning/pml-training.csv")
+testing = read.csv("~/Desktop/Coursera/8. Machine Learning/pml-testing.csv")
+```
+
+## Exploratory Data Analysis & Data Wrangling
+
+Based on looking at training set and in forum discussion here: https://www.coursera.org/learn/practical-machine-learning/discussions/weeks/4/threads/fZyOtOQfEea2TQ7YaXqGnA
+
+Rows for which variable "new_window" is "yes" are aggregates of data from preceding observation window. So these rows should be discarded. Which means many of the columns, those that are only used for aggregate values, can also be discarded. Let's remove those "aggregate" rows for which new_window = "yes".  
+
+```{r}
+training = filter(training, new_window != "yes")
+```
+
+Remove the "new_window" column
+```{r}
+training = select(training, -new_window)
+```
+
+Let's identify the empty columns that were only used for aggregate values. Assume row 1 is representative of entire data frame.  
+
+```{r}
+col_NA = as.vector(is.na(training[1,])) # columns in row 1 with NA
+col_class = sapply(training, class) # identify class of all columns
+```
+
+Columns with blank entries
+```{r}
+col_blank = as.vector((col_class == "character" & training[1,] == ""))
+```
+
+Remove columns with NAs and blank entries
+```{r}
+newTraining = training[, (!col_NA & !col_blank)]
+```
+
+Note that, by inspection, outcome in col 59, predictors in columns 7 thru 58. So we discard unneeded columns.  
+
+```{r}
+newestTraining = newTraining[,7:59]
+y = newestTraining[,53] # outcome
+x = newestTraining[,1:52] # predictors
+```
+
+## Modeling
+
+Disclosure: Much of the following process is derived from Len Greski's informative explanation available here: https://github.com/lgreski/datasciencectacontent/blob/master/markdown/pml-randomForestPerformance.md  
+
+### Configure Parallel Processing
+```{r}
+cluster <- makeCluster(detectCores() - 1) # convention to leave 1 core for OS
+registerDoParallel(cluster)
+```
+
+### Configure trainControl Object
+```{r}
+fitControl <- trainControl(method = "cv",
+                           number = 5,
+                           allowParallel = TRUE)
+```
+
+### Develop Training Model
+
+Fit a random forest model of "classe" vs all predictors
+```{r}
+modFit = train(x, y, method = "rf", 
+               trControl= fitControl)
+```
+
+After processing the data, we explicitly shut down the cluster by calling the stopCluster() function.
+
+```{r}
+stopCluster(cluster)
+registerDoSEQ()
+```
+
+### Evaluate
+At this point we have a trained model in the fit object, and can take a number of steps to evaluate the suitability of this model, including accuracy and a confusion matrix that is based on comparing the modeled data to the held out folds.  
+
+```{r}
+modFit
+
+modFit$resample
+
+confusionMatrix.train(modFit)
+```
+
+Really, a pretty astonishing accuracy.
+
+## Estimate Error
+
+Two different ways to estimate error for data not in sample:
+
+1. Out-of-bag error rate
+```{r}
+mean(modFit$finalModel$err.rate[,"OOB"])
+```
+
+2. Average error rate across samples 
+```{r}
+1 - mean(modFit$resample[,"Accuracy"])
+```
+
+To be honest I am not entirely sure what these numbers represent but they appear to indicate an approximate error of ~0.5% obtained by caret's automated cross-validation. In short, using the training set, part of it not used in fitting the model, but is reserved for error estimation which produced these numbers.  
+
+## Predict Scores Using Test Data
+To handle test set, must process in same way as training.  
+Remove the "new_window" column
+```{r}
+testing = select(testing, -new_window)
+```
+
+Remove columns with NAs and blank entries
+```{r}
+newTesting = testing[, (!col_NA & !col_blank)]
+```
+
+Note, by inspection, outcome in col 59, predictors in columns 7 thru 58. So we discard unneeded columns.
+```{r}
+newestTesting = newTesting[,7:58] # Note we are using predictors only
+```
+
+### Predicted outcome for test set
+These scores predict how we would score whether the subjects were lifting the weights properly or not.
+
+```{r}
+predTest = predict(modFit, newdata = newestTesting)
+
+predTest
+```
+
+## Summary
+We built a random forest model using the given weight lifting data and 5-fold cross-validation. On the training data, our model demonstrated ~99.5% accuracy, and out-of-bag error (estimated error on data not in the training set) was not much more than for the training set: maybe 0.5 to 0.7%. We then used the random forest model to predict whether the subjects in the test set were performing the dumbbell exercises properly, according to the A-E scale used.
+
+One area that could use some clarification is whether we should have been using the raw data as our predictors, or the window-based aggregate numbers that were clearly calculated for some purpose by the people who originally tabulated the data. 
