@@ -1772,20 +1772,20 @@ registerDoSEQ()</code></pre>
 ## 
 ## No pre-processing
 ## Resampling: Cross-Validated (5 fold) 
-## Summary of sample sizes: 15375, 15373, 15371, 15373, 15372 
+## Summary of sample sizes: 15374, 15371, 15372, 15375, 15372 
 ## Resampling results across tuning parameters:
 ## 
 ##   mtry  Accuracy   Kappa    
-##    2    0.9944839  0.9930216
-##   27    0.9931829  0.9913756
-##   52    0.9893843  0.9865691
+##    2    0.9938592  0.9922311
+##   27    0.9942235  0.9926921
+##   52    0.9894359  0.9866345
 ## 
 ## Accuracy was used to select the optimal model using the largest value.
-## The final value used for the model was mtry = 2.</code></pre>
+## The final value used for the model was mtry = 27.</code></pre>
 <pre class="r"><code>modFit$resample</code></pre>
 <div data-pagedtable="false">
 <script data-pagedtable-source type="application/json">
-{"columns":[{"label":["Accuracy"],"name":[1],"type":["dbl"],"align":["right"]},{"label":["Kappa"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["Resample"],"name":[3],"type":["chr"],"align":["left"]}],"data":[{"1":"0.9947930","2":"0.9934123","3":"Fold1"},{"1":"0.9963570","2":"0.9953916","3":"Fold2"},{"1":"0.9937565","2":"0.9921014","3":"Fold5"},{"1":"0.9937549","2":"0.9920993","3":"Fold4"},{"1":"0.9937581","2":"0.9921035","3":"Fold3"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+{"columns":[{"label":["Accuracy"],"name":[1],"type":["dbl"],"align":["right"]},{"label":["Kappa"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["Resample"],"name":[3],"type":["chr"],"align":["left"]}],"data":[{"1":"0.9924518","2":"0.9904494","3":"Fold1"},{"1":"0.9947971","2":"0.9934185","3":"Fold3"},{"1":"0.9945384","2":"0.9930909","3":"Fold2"},{"1":"0.9940166","2":"0.9924305","3":"Fold5"},{"1":"0.9953137","2":"0.9940713","3":"Fold4"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
   </script>
 </div>
 <pre class="r"><code>confusionMatrix.train(modFit)</code></pre>
@@ -1795,13 +1795,13 @@ registerDoSEQ()</code></pre>
 ##  
 ##           Reference
 ## Prediction    A    B    C    D    E
-##          A 28.5  0.1  0.0  0.0  0.0
+##          A 28.4  0.1  0.0  0.0  0.0
 ##          B  0.0 19.2  0.1  0.0  0.0
-##          C  0.0  0.0 17.3  0.3  0.0
-##          D  0.0  0.0  0.0 16.1  0.0
+##          C  0.0  0.0 17.3  0.2  0.0
+##          D  0.0  0.0  0.1 16.2  0.0
 ##          E  0.0  0.0  0.0  0.0 18.3
 ##                             
-##  Accuracy (average) : 0.9945</code></pre>
+##  Accuracy (average) : 0.9942</code></pre>
 <p>Really, a pretty astonishing accuracy.</p>
 </div>
 </div>
@@ -1812,12 +1812,12 @@ registerDoSEQ()</code></pre>
 <li>Out-of-bag error rate</li>
 </ol>
 <pre class="r"><code>mean(modFit$finalModel$err.rate[,&quot;OOB&quot;])</code></pre>
-<pre><code>## [1] 0.007665048</code></pre>
+<pre><code>## [1] 0.005364456</code></pre>
 <ol start="2" style="list-style-type: decimal">
 <li>Average error rate across samples</li>
 </ol>
 <pre class="r"><code>1 - mean(modFit$resample[,&quot;Accuracy&quot;])</code></pre>
-<pre><code>## [1] 0.005516091</code></pre>
+<pre><code>## [1] 0.005776467</code></pre>
 <p>To be honest I am not entirely sure what these numbers represent but they appear to indicate an approximate error of ~0.5% obtained by caret’s automated cross-validation. In short, using the training set, part of it not used in fitting the model, but is reserved for error estimation which produced these numbers.</p>
 </div>
 <div id="predict-scores-using-test-data" class="section level2">
